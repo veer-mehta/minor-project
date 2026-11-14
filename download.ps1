@@ -1,0 +1,43 @@
+# Fetches datasets, annotations and weights into data/ and weights/ (about 27 GB).
+# Safe to re-run: finished items are skipped and partial downloads resume.
+$ErrorActionPreference = 'Stop'
+Set-Location $PSScriptRoot
+
+$drive = 'https://drive.usercontent.google.com/download?export=download&confirm=t&id='
+$hico  = 'https://raw.githubusercontent.com/fredzzhang/hicodet/main'
+$vcoco = 'https://raw.githubusercontent.com/fredzzhang/vcoco/main'
+
+function Get-File($url, $out) {
+    if (Test-Path $out) { return }
+    New-Item -ItemType Directory -Force (Split-Path $out) | Out-Null
+    while ($true) {
+        curl.exe -L -C - --retry 5 -o "$out.part" $url
+        if ($LASTEXITCODE -eq 0) { break }
+        Start-Sleep 5
+    }
+    Move-Item "$out.part" $out
+}
+
+# Downloads an archive and unpacks it; $dir is the folder the archive creates.
+function Get-Archive($url, $archive, $dir) {
+    if (Test-Path $dir) { return }
+    Get-File $url $archive
+    $parent = Split-Path $dir
+    tar -xf $archive -C $parent
+    if ($LASTEXITCODE -ne 0) { throw "extracting $archive failed" }
+    Remove-Item $archive
+}
+
+# Small files first, so code can be tested while the images download
+foreach ($f in 'instances_train2015.json', 'instances_test2015.json') { Get-File "$hico/$f" "data/hicodet/$f" }
+foreach ($p in 'train', 'val', 'trainval', 'test') { Get-File "$vcoco/instances_vcoco_$p.json" "data/vcoco/instances_vcoco_$p.json" }
+
+# Released UPT-R50 models and the fine-tuned DETR-R50 detectors they start from (UPT model zoo)
+Get-File ($drive + '1lvopTC_JlGHdKOyyEZTUp2VtFfCQ-08z') 'weights/upt-r50-hicodet.pt'
+Get-File ($drive + '1BQ-0tbSH7UC6QMIMMgdbNpRw2NcO8yAD') 'weights/detr-r50-hicodet.pth'
+Get-File ($drive + '17Cfse3pNarVgFZd0ArMg-h6yWEYpa2NQ') 'weights/upt-r50-vcoco.pt'
+Get-File ($drive + '1AIqc2LBkucBAAb_ebK9RjyNS5WmnA4HV') 'weights/detr-r50-vcoco.pth'
+
+Get-Archive 'http://images.cocodataset.org/zips/val2014.zip'   'data/coco/val2014.zip'   'data/coco/val2014'
+Get-Archive ($drive + '1QZcJmGVlF9f4h-XLWe9Gkmnmj2z1gSnk') 'data/hicodet/hico_20160224_det.tar.gz' 'data/hicodet/hico_20160224_det'
+Get-Archive 'http://images.cocodataset.org/zips/train2014.zip' 'data/coco/train2014.zip' 'data/coco/train2014'
