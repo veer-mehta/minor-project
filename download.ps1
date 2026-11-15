@@ -11,8 +11,9 @@ function Get-File($url, $out) {
     if (Test-Path $out) { return }
     New-Item -ItemType Directory -Force (Split-Path $out) | Out-Null
     while ($true) {
-        curl.exe -L -C - --retry 5 -o "$out.part" $url
+        curl.exe -f -L -C - --retry 5 -o "$out.part" $url
         if ($LASTEXITCODE -eq 0) { break }
+        if ($LASTEXITCODE -eq 22) { throw "server refused $url" }  # HTTP error: retrying will not help
         Start-Sleep 5
     }
     Move-Item "$out.part" $out
@@ -39,5 +40,14 @@ Get-File ($drive + '17Cfse3pNarVgFZd0ArMg-h6yWEYpa2NQ') 'weights/upt-r50-vcoco.p
 Get-File ($drive + '1AIqc2LBkucBAAb_ebK9RjyNS5WmnA4HV') 'weights/detr-r50-vcoco.pth'
 
 Get-Archive 'http://images.cocodataset.org/zips/val2014.zip'   'data/coco/val2014.zip'   'data/coco/val2014'
-Get-Archive ($drive + '1QZcJmGVlF9f4h-XLWe9Gkmnmj2z1gSnk') 'data/hicodet/hico_20160224_det.tar.gz' 'data/hicodet/hico_20160224_det'
+Get-Archive ($drive + '1dUByzVzM6z1Oq4gENa1-t0FLhr0UtDaS') 'data/hicodet/hico_20160224_det.tar.gz' 'data/hicodet/hico_20160224_det'
 Get-Archive 'http://images.cocodataset.org/zips/train2014.zip' 'data/coco/train2014.zip' 'data/coco/train2014'
+
+# V-COCO evaluation: Gupta's evaluator and the COCO annotations it reads
+if (-not (Test-Path data/v-coco)) { git clone --depth 1 https://github.com/s-gupta/v-coco data/v-coco }
+if (-not (Test-Path data/v-coco/data/instances_vcoco_all_2014.json)) {
+    Get-File 'http://images.cocodataset.org/annotations/annotations_trainval2014.zip' 'data/coco/annotations_trainval2014.zip'
+    tar -xf data/coco/annotations_trainval2014.zip -C data/coco annotations/instances_train2014.json annotations/instances_val2014.json
+    Remove-Item data/coco/annotations_trainval2014.zip
+    python data/v-coco/script_pick_annotations.py data/coco/annotations
+}

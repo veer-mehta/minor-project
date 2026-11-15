@@ -74,3 +74,8 @@ class HOIDataset(Dataset):
         if self.transforms is not None:
             image, target = self.transforms(image, target)
         return image, target
+
+
+def collate(batch):
+    """Keep images and targets as tuples: images differ in size."""
+    return tuple(zip(*batch))
