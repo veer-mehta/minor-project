@@ -4,8 +4,8 @@ $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 $drive = 'https://drive.usercontent.google.com/download?export=download&confirm=t&id='
-$hico  = 'https://raw.githubusercontent.com/fredzzhang/hicodet/main'
-$vcoco = 'https://raw.githubusercontent.com/fredzzhang/vcoco/main'
+$hico  = 'https://raw.githubusercontent.com/fredzzhang/hicodet/9dd59c1f6ee2ddc011567765d0bc644858391fea'  # version pinned by UPT: objects in COCO order
+$vcoco = 'https://raw.githubusercontent.com/fredzzhang/vcoco/cb13e3d3cd74158b41acee09979e25e875c02053'
 
 function Get-File($url, $out) {
     if (Test-Path $out) { return }
