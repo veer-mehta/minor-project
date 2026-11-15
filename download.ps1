@@ -44,7 +44,12 @@ Get-Archive ($drive + '1dUByzVzM6z1Oq4gENa1-t0FLhr0UtDaS') 'data/hicodet/hico_20
 Get-Archive 'http://images.cocodataset.org/zips/train2014.zip' 'data/coco/train2014.zip' 'data/coco/train2014'
 
 # V-COCO evaluation: Gupta's evaluator and the COCO annotations it reads
-if (-not (Test-Path data/v-coco)) { git clone --depth 1 https://github.com/s-gupta/v-coco data/v-coco }
+if (-not (Test-Path data/v-coco)) {
+    git clone --depth 1 https://github.com/s-gupta/v-coco data/v-coco
+    # The evaluator predates NumPy 2, which no longer converts a one-element array to a scalar
+    $eval = 'data/v-coco/vsrl_eval.py'
+    (Get-Content $eval -Raw).Replace('role_id[i, j - 1] = aid', 'role_id[i, j - 1] = aid[0]') | Set-Content $eval -NoNewline
+}
 if (-not (Test-Path data/v-coco/data/instances_vcoco_all_2014.json)) {
     Get-File 'http://images.cocodataset.org/annotations/annotations_trainval2014.zip' 'data/coco/annotations_trainval2014.zip'
     tar -xf data/coco/annotations_trainval2014.zip -C data/coco annotations/instances_train2014.json annotations/instances_val2014.json
